@@ -221,7 +221,7 @@ resource "aws_route_table_association" "private_db" {
 
 # ALB용 SG: 80/443 외부에서 허용
 resource "aws_security_group" "alb" {
-  name        = "sg-3tier-alb"
+  name        = "3tier-alb-sg"
   description = "Security group for ALB"
   vpc_id      = aws_vpc.this.id
 
@@ -252,13 +252,13 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name = "sg-3tier-alb"
+    Name = "3tier-alb-sg"
   }
 }
 
 # App 서버(ECS/EC2)용 SG: ALB에서만 접근 허용
 resource "aws_security_group" "app" {
-  name        = "sg-3tier-app"
+  name        = "3tier-app-sg"
   description = "Security group for App tier (ECS/EC2)"
   vpc_id      = aws_vpc.this.id
 
@@ -280,13 +280,13 @@ resource "aws_security_group" "app" {
   }
 
   tags = {
-    Name = "sg-3tier-app"
+    Name = "3tier-app-sg"
   }
 }
 
 # DB용 SG: App SG에서만 DB 포트 접근 허용
 resource "aws_security_group" "db" {
-  name        = "sg-3tier-db"
+  name        = "3tier-db-sg"
   description = "Security group for DB tier (RDS)"
   vpc_id      = aws_vpc.this.id
 
@@ -307,6 +307,6 @@ resource "aws_security_group" "db" {
   }
 
   tags = {
-    Name = "sg-3tier-db"
+    Name = "3tier-db-sg"
   }
 }
