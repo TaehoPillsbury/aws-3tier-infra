@@ -1,0 +1,48 @@
+name: Terraform Destroy (MAIN only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "DESTROY" to confirm MAIN destroy'
+        required: true
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy-main:
+    name: destroy-main
+    if: ${{ inputs.confirm == 'DESTROY' }}
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ap-northeast-2
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC → STS)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-terraform-destroy-main
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init (MAIN)
+        working-directory: main
+        run: terraform init
+
+      - name: Terraform Destroy (MAIN)
+        working-directory: main
+        run: terraform destroy -auto-approve
