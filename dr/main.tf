@@ -204,15 +204,15 @@ resource "aws_security_group" "app" {
   name   = "pldr-dr-app-sg"
   vpc_id = aws_vpc.this.id
   ingress {
-    from_port       = 8080
-    to_port         = 8080
+    from_port       = 3001
+    to_port         = 3001
     protocol        = "tcp"
     security_groups = [aws_security_group.web.id]
   }
   # NLB Health Check (나중에 생성될 NLB를 위해 열어둠)
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 3001
+    to_port     = 3001
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.this.cidr_block]
   }
@@ -324,14 +324,14 @@ resource "aws_lb_listener" "http" {
 # 복구 시 Lambda가 새 NLB를 만들고 이 Target Group을 연결하면 됨
 resource "aws_lb_target_group" "app" {
   name        = "pldr-dr-app-tg"
-  port        = 8080
+  port        = 3001
   protocol    = "TCP"
   vpc_id      = aws_vpc.this.id
   target_type = "instance"
   health_check {
     protocol = "HTTP"
     path     = "/"
-    port     = "8080"
+    port     = "3001"
   }
   tags = local.tags
 }
@@ -476,7 +476,7 @@ resource "aws_launch_template" "app" {
                     return jsonify({"error": str(e)}), 500
 
             if __name__ == "__main__":
-                app.run(host="0.0.0.0", port=8080)
+                app.run(host="0.0.0.0", port=3001)
             APP
 
             # 서비스 재시작
