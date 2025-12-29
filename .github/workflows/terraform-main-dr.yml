@@ -1,0 +1,96 @@
+name: Terraform Apply (MAIN + DR)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "main/**"
+      - "dr/**"
+      - ".github/workflows/terraform-main-dr.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-main:
+    name: terraform-main
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC → STS)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-terraform-main
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        working-directory: main
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: main
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: main
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: main
+        run: terraform apply -auto-approve tfplan
+
+  terraform-dr:
+    name: terraform-dr
+    needs: terraform-main   # ⭐ main 성공 후에만 실행
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-1
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC → STS)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-terraform-dr
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        working-directory: dr
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: dr
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: dr
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: dr
+        run: terraform apply -auto-approve tfplan
