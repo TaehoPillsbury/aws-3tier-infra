@@ -256,8 +256,8 @@ resource "aws_security_group" "app" {
   vpc_id = aws_vpc.this.id
 
   ingress {
-    from_port       = 8080
-    to_port         = 8080
+    from_port       = 3001
+    to_port         = 3001
     protocol        = "tcp"
     security_groups = [aws_security_group.web.id]
   }
@@ -265,8 +265,8 @@ resource "aws_security_group" "app" {
   # NLB Health Check
   ingress {
     description = "Allow NLB health checks from VPC"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 3001
+    to_port     = 3001
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.this.cidr_block]
   }
@@ -451,7 +451,7 @@ resource "aws_launch_template" "web" {
                   }
 
                   location /api/ {
-                      proxy_pass http://app.internal.pldr:8080/;
+                      proxy_pass http://app.internal.pldr:3001/;
                       proxy_set_header Host \$host;
                       proxy_set_header X-Real-IP \$remote_addr;
                       proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -637,7 +637,7 @@ resource "aws_launch_template" "app" {
                     return jsonify({"error": str(e)}), 500
 
             if __name__ == "__main__":
-                app.run(host="0.0.0.0", port=8080)
+                app.run(host="0.0.0.0", port=3001)
             APP
 
             # Systemd Service 등록
@@ -651,7 +651,7 @@ resource "aws_launch_template" "app" {
             Group=root
             WorkingDirectory=/
             Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-            ExecStart=/usr/local/bin/gunicorn --workers 3 --bind 0.0.0.0:8080 app:app
+            ExecStart=/usr/local/bin/gunicorn --workers 3 --bind 0.0.0.0:3001 app:app
             Restart=always
 
             [Install]
@@ -751,7 +751,7 @@ resource "aws_lb" "app_nlb" {
 
 resource "aws_lb_target_group" "app" {
   name        = "pldr-main-app-tg"
-  port        = 8080
+  port        = 3001
   protocol    = "TCP"
   vpc_id      = aws_vpc.this.id
   target_type = "instance"
@@ -759,7 +759,7 @@ resource "aws_lb_target_group" "app" {
   health_check {
     protocol            = "HTTP"
     path                = "/"
-    port                = "8080"
+    port                = "3001"
     matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -769,9 +769,9 @@ resource "aws_lb_target_group" "app" {
   tags = local.tags
 }
 
-resource "aws_lb_listener" "app_tcp_8080" {
+resource "aws_lb_listener" "app_tcp_3001" {
   load_balancer_arn = aws_lb.app_nlb.arn
-  port              = 8080
+  port              = 3001
   protocol          = "TCP"
 
   default_action {
